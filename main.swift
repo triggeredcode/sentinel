@@ -1,8 +1,10 @@
 import Cocoa
 import CoreGraphics
+import Foundation
 
 let displayID = CGMainDisplayID()
 let jpegQuality: CGFloat = 0.85
+let serverURL = URL(string: "http://127.0.0.1:8000/upload")!
 var captureCount = 0
 
 func captureScreen() -> CGImage? {
@@ -14,20 +16,33 @@ func toJPEG(_ image: CGImage) -> Data? {
     return bitmap.representation(using: .jpeg, properties: [.compressionFactor: jpegQuality])
 }
 
+func upload(_ data: Data) {
+    var request = URLRequest(url: serverURL)
+    request.httpMethod = "POST"
+    request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+    
+    let task = URLSession.shared.uploadTask(with: request, from: data) { _, response, error in
+        if let error = error {
+            print("Upload failed: \(error)")
+        } else if let http = response as? HTTPURLResponse {
+            print("Upload: \(http.statusCode)")
+        }
+    }
+    task.resume()
+}
+
 func doCapture() {
     captureCount += 1
     if let img = captureScreen(), let data = toJPEG(img) {
-        let path = "/tmp/sentinel_\(captureCount).jpg"
-        try? data.write(to: URL(fileURLWithPath: path))
-        print("[\(captureCount)] Captured \(data.count / 1024) KB")
+        print("[\(captureCount)] Uploading \(data.count / 1024) KB...")
+        upload(data)
     }
 }
 
-// Capture every 10 seconds
-print("Starting capture loop (10s interval)...")
+print("Starting capture + upload (10s interval)...")
 let timer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
     doCapture()
 }
 
-doCapture()  // Initial capture
+doCapture()
 RunLoop.main.run()
