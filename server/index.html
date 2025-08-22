@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sentinel</title>
+    <style>
+        body { background: #111; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        img { max-width: 100%; max-height: 100vh; }
+    </style>
+</head>
+<body>
+    <img id="img" src="/latest">
+    <script>
+        // Reload every 5 seconds
+        setInterval(() => {
+            document.getElementById('img').src = '/latest?' + Date.now();
+        }, 5000);
+    </script>
+</body>
+</html>

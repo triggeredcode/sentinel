@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Sentinel Server - receives screenshots"""
+"""Sentinel Server - receives and displays screenshots"""
 
-from flask import Flask, request, send_from_directory
+from flask import Flask, request, send_from_directory, send_file
 from pathlib import Path
 from datetime import datetime
 
 app = Flask(__name__)
 STORAGE = Path("/tmp/sentinel_images")
 STORAGE.mkdir(exist_ok=True)
+
+@app.route("/")
+def index():
+    return send_file("index.html")
 
 @app.route("/upload", methods=["POST"])
 def upload():
