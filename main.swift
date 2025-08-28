@@ -6,6 +6,7 @@ let displayID = CGMainDisplayID()
 let jpegQuality: CGFloat = 0.85
 let serverURL = URL(string: "http://127.0.0.1:8000/upload")!
 var captureCount = 0
+var timer: Timer?  // Store reference to invalidate later
 
 func captureScreen() -> CGImage? {
     return CGDisplayCreateImage(displayID)
@@ -39,8 +40,25 @@ func doCapture() {
     }
 }
 
+func cleanup() {
+    timer?.invalidate()
+    timer = nil
+    print("Cleanup complete")
+}
+
+// Handle termination
+signal(SIGINT) { _ in
+    cleanup()
+    exit(0)
+}
+
+signal(SIGTERM) { _ in
+    cleanup()
+    exit(0)
+}
+
 print("Starting capture + upload (10s interval)...")
-let timer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
+timer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
     doCapture()
 }
 
