@@ -3,22 +3,27 @@ import CoreGraphics
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
+    var statusMenuItem: NSMenuItem!
     var timer: Timer?
+    var captureCount = 0
     let serverURL = URL(string: "http://127.0.0.1:8000/upload")!
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Menu bar icon
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = "📷"
         
-        // Simple menu
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Sentinel Active", action: nil, keyEquivalent: ""))
+        
+        statusMenuItem = NSMenuItem(title: "Captures: 0", action: nil, keyEquivalent: "")
+        statusMenuItem.isEnabled = false
+        menu.addItem(statusMenuItem)
+        
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Capture Now!", action: #selector(captureNow), keyEquivalent: "n"))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
-        statusItem.menu = menu
         
-        // Start capturing
+        statusItem.menu = menu
         startCapture()
     }
     
@@ -26,6 +31,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
             self?.capture()
         }
+        capture()
+    }
+    
+    @objc func captureNow() {
         capture()
     }
     
@@ -37,7 +46,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         var request = URLRequest(url: serverURL)
         request.httpMethod = "POST"
         request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
-        URLSession.shared.uploadTask(with: request, from: data) { _, _, _ in }.resume()
+        
+        URLSession.shared.uploadTask(with: request, from: data) { [weak self] _, response, _ in
+            if let http = response as? HTTPURLResponse, http.statusCode == 200 {
+                DispatchQueue.main.async {
+                    self?.captureCount += 1
+                    self?.statusMenuItem.title = "Captures: \(self?.captureCount ?? 0)"
+                }
+            }
+        }.resume()
     }
     
     @objc func quit() {
@@ -47,7 +64,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 let app = NSApplication.shared
-app.setActivationPolicy(.accessory)  // No dock icon!
+app.setActivationPolicy(.accessory)
 let delegate = AppDelegate()
 app.delegate = delegate
 app.run()
