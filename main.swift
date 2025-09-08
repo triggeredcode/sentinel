@@ -1,66 +1,70 @@
 import Cocoa
 import CoreGraphics
-import Foundation
 
-let displayID = CGMainDisplayID()
-let jpegQuality: CGFloat = 0.85
-let serverURL = URL(string: "http://127.0.0.1:8000/upload")!
-var captureCount = 0
-var timer: Timer?  // Store reference to invalidate later
-
-func captureScreen() -> CGImage? {
-    return CGDisplayCreateImage(displayID)
-}
-
-func toJPEG(_ image: CGImage) -> Data? {
-    let bitmap = NSBitmapImageRep(cgImage: image)
-    return bitmap.representation(using: .jpeg, properties: [.compressionFactor: jpegQuality])
-}
-
-func upload(_ data: Data) {
-    var request = URLRequest(url: serverURL)
-    request.httpMethod = "POST"
-    request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+class AppDelegate: NSObject, NSApplicationDelegate {
+    var statusItem: NSStatusItem!
+    var statusMenuItem: NSMenuItem!
+    var timer: Timer?
+    var captureCount = 0
+    let serverURL = URL(string: "http://127.0.0.1:8000/upload")!
     
-    let task = URLSession.shared.uploadTask(with: request, from: data) { _, response, error in
-        if let error = error {
-            print("Upload failed: \(error)")
-        } else if let http = response as? HTTPURLResponse {
-            print("Upload: \(http.statusCode)")
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem.button?.title = "📷"
+        
+        let menu = NSMenu()
+        
+        statusMenuItem = NSMenuItem(title: "Captures: 0", action: nil, keyEquivalent: "")
+        statusMenuItem.isEnabled = false
+        menu.addItem(statusMenuItem)
+        
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Capture Now!", action: #selector(captureNow), keyEquivalent: "n"))
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
+        
+        statusItem.menu = menu
+        startCapture()
+    }
+    
+    func startCapture() {
+        timer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+            self?.capture()
         }
+        capture()
     }
-    task.resume()
-}
-
-func doCapture() {
-    captureCount += 1
-    if let img = captureScreen(), let data = toJPEG(img) {
-        print("[\(captureCount)] Uploading \(data.count / 1024) KB...")
-        upload(data)
+    
+    @objc func captureNow() {
+        capture()
+    }
+    
+    func capture() {
+        guard let img = CGDisplayCreateImage(CGMainDisplayID()) else { return }
+        let bitmap = NSBitmapImageRep(cgImage: img)
+        guard let data = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.85]) else { return }
+        
+        var request = URLRequest(url: serverURL)
+        request.httpMethod = "POST"
+        request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+        
+        URLSession.shared.uploadTask(with: request, from: data) { [weak self] _, response, _ in
+            if let http = response as? HTTPURLResponse, http.statusCode == 200 {
+                DispatchQueue.main.async {
+                    self?.captureCount += 1
+                    self?.statusMenuItem.title = "Captures: \(self?.captureCount ?? 0)"
+                }
+            }
+        }.resume()
+    }
+    
+    @objc func quit() {
+        timer?.invalidate()
+        NSApplication.shared.terminate(nil)
     }
 }
 
-func cleanup() {
-    timer?.invalidate()
-    timer = nil
-    print("Cleanup complete")
-}
-
-// Handle termination
-signal(SIGINT) { _ in
-    cleanup()
-    exit(0)
-}
-
-signal(SIGTERM) { _ in
-    cleanup()
-    exit(0)
-}
-
-print("Starting capture + upload (10s interval)...")
-timer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
-    doCapture()
-}
-
-doCapture()
-RunLoop.main.run()
+let app = NSApplication.shared
+app.setActivationPolicy(.accessory)
+let delegate = AppDelegate()
+app.delegate = delegate
+app.run()
