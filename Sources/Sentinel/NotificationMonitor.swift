@@ -59,3 +59,30 @@ final class NotificationMonitor {
     
     func clearEvents() { events.removeAll() }
 }
+
+extension NotificationMonitor {
+    private static var clipboardTimer: Timer?
+    private static var lastClipboardCount = 0
+    
+    func startClipboardMonitoring() {
+        Self.lastClipboardCount = NSPasteboard.general.changeCount
+        Self.clipboardTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.checkClipboard()
+        }
+    }
+    
+    private func checkClipboard() {
+        let count = NSPasteboard.general.changeCount
+        guard count != Self.lastClipboardCount else { return }
+        Self.lastClipboardCount = count
+        
+        var content = "Unknown"
+        if let text = NSPasteboard.general.string(forType: .string) {
+            content = String(text.prefix(100)) + (text.count > 100 ? "..." : "")
+        } else if NSPasteboard.general.data(forType: .png) != nil {
+            content = "[Image]"
+        }
+        
+        addEvent(type: "clipboard", title: "Clipboard Changed", body: content)
+    }
+}
