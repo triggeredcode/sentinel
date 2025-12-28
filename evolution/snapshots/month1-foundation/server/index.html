@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head><title>Sentinel</title></head>
+<body style="margin:0;background:#000">
+<img id="screen" style="width:100%;height:100vh;object-fit:contain">
+<script>
+setInterval(() => {
+  document.getElementById('screen').src = '/latest?' + Date.now();
+}, 2000);
+</script>
+</body>
+</html>
