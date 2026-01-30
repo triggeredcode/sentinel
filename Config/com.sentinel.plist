@@ -2,24 +2,55 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- Service identifier -->
     <key>Label</key>
     <string>com.sentinel</string>
+    
+    <!-- Program to execute -->
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/Sentinel</string>
     </array>
+    
+    <!-- Keep the agent running -->
     <key>KeepAlive</key>
     <true/>
+    
+    <!-- Start when user logs in -->
     <key>RunAtLoad</key>
     <true/>
+    
+    <!-- Process type - Interactive for menu bar apps -->
     <key>ProcessType</key>
     <string>Interactive</string>
+    
+    <!-- Low priority I/O to be power-friendly -->
     <key>LowPriorityIO</key>
     <true/>
+    
+    <!-- Memory limit: 25MB -->
     <key>HardResourceLimits</key>
     <dict>
         <key>MemoryLimit</key>
         <integer>26214400</integer>
     </dict>
+    
+    <!-- Logging -->
+    <key>StandardOutPath</key>
+    <string>/tmp/sentinel.stdout.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/tmp/sentinel.stderr.log</string>
+    
+    <!-- Environment -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    
+    <!-- Restart throttling -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
 </dict>
 </plist>

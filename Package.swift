@@ -3,14 +3,21 @@ import PackageDescription
 
 let package = Package(
     name: "Sentinel",
-    platforms: [.macOS(.v13)],
+    platforms: [
+        .macOS(.v13)
+    ],
     products: [
         .executable(name: "Sentinel", targets: ["Sentinel"])
     ],
+    dependencies: [],
     targets: [
         .executableTarget(
             name: "Sentinel",
+            dependencies: [],
             path: "Sources/Sentinel",
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ],
             linkerSettings: [
                 .linkedFramework("Cocoa"),
                 .linkedFramework("CoreGraphics"),
